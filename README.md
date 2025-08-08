@@ -42,5 +42,3 @@ BibTeX file: output/citations.bibtex
 - Make sure your internet connection is stable.
 - Avoid overloading Google Scholar to prevent temporary blocks.
 - Use proxies or APIs for heavy usage.
-
-# snowballing_farward
