@@ -61,40 +61,80 @@ def search_scholar(driver, title):
 
 
 
-def parse_cited_by_link(driver, original_title):
+# def parse_cited_by_link(driver, original_title):
+#     """
+#     Search the current Google Scholar result page for the article title.
+#     If found, return the 'Cited by' link and citation count.
+
+#     Parameters:
+#         driver (webdriver): The Selenium web driver currently on a Scholar search page.
+#         original_title (str): The title of the article to match.
+
+#     Returns:
+#         tuple(str or None, int or None): The URL of the 'Cited by' link and citation count.
+#     """
+#     articles = driver.find_elements(By.CLASS_NAME, "gs_ri")
+#     for art in articles:
+#         try:
+#             # Extract the title from the current search result
+#             art_title = art.find_element(By.CLASS_NAME, "gs_rt").text
+
+#             if clean_title(art_title) == clean_title(original_title):
+#                 links = art.find_elements(By.TAG_NAME, "a")
+#                 for link in links:
+#                     link_text = link.text
+#                     if STRINGS[SCHOLAR_LANGUAGE]["cited_by"] in link_text:
+#                         cited_by_url = link.get_attribute("href")
+
+#                         # Extract number of citations from the link text
+#                         citation_count = int("".join(filter(str.isdigit, link_text)))
+#                         return cited_by_url, citation_count
+#         except NoSuchElementException:
+#             continue
+#         except ValueError:
+#             continue
+
+#     print(f"[parse_cited_by_link] Article not found: '{original_title}'")
+#     return None, None
+
+def parse_cited_by_link(driver, original_title, max_results_to_check=10):
     """
     Search the current Google Scholar result page for the article title.
-    If found, return the 'Cited by' link and citation count.
+    Return the 'Cited by' link and citation count if match is found.
 
     Parameters:
         driver (webdriver): The Selenium web driver currently on a Scholar search page.
         original_title (str): The title of the article to match.
+        max_results_to_check (int): Max number of results to scan before giving up.
 
     Returns:
         tuple(str or None, int or None): The URL of the 'Cited by' link and citation count.
     """
     articles = driver.find_elements(By.CLASS_NAME, "gs_ri")
-    for art in articles:
-        try:
-            # Extract the title from the current search result
-            art_title = art.find_element(By.CLASS_NAME, "gs_rt").text
+    normalized_original = clean_title(original_title)
 
-            if clean_title(art_title) == clean_title(original_title):
+    for idx, art in enumerate(articles[:max_results_to_check]):
+        try:
+            art_title = art.find_element(By.CLASS_NAME, "gs_rt").text
+            normalized_candidate = clean_title(art_title)
+
+            # More tolerant matching: exact title OR partial match by start or inclusion
+            if (
+                normalized_candidate == normalized_original or
+                normalized_original in normalized_candidate or
+                normalized_candidate.startswith(normalized_original[:20])
+            ):
                 links = art.find_elements(By.TAG_NAME, "a")
                 for link in links:
                     link_text = link.text
                     if STRINGS[SCHOLAR_LANGUAGE]["cited_by"] in link_text:
                         cited_by_url = link.get_attribute("href")
-
-                        # Extract number of citations from the link text
                         citation_count = int("".join(filter(str.isdigit, link_text)))
                         return cited_by_url, citation_count
-        except NoSuchElementException:
-            continue
-        except ValueError:
+        except Exception:
             continue
 
-    print(f"[parse_cited_by_link] Article not found: '{original_title}'")
+    print(f"[parse_cited_by_link] Article not found in top {max_results_to_check} results: '{original_title}'")
     return None, None
 
 
